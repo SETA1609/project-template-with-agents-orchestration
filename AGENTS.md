@@ -175,34 +175,49 @@ Reusable workflows live in `.agents/workflows/`. Run them as needed:
 - Never force-push to `main`
 - Open a PR for any change that touches shared or framework-level code
 
-### Branch & merge strategy (squash + fast-forward)
+### Branch & merge strategy (squash + rebase + fast-forward)
 
-Every task is worked in its own short-lived branch. The full lifecycle for a single step:
+Every task is worked in its own short-lived branch. Agents work simultaneously — no locking required. The rebase step before merge is what keeps `main` linear without coordination.
 
 ```
 # 1. Branch off main before touching any files
-git checkout main && git pull
-git checkout -b <agent>/<short-description>   # e.g. claude/transport-interface
+git checkout main && git pull --ff-only
+git checkout -b <agent>/<short-description>   # e.g. c/transport-interface
 
 # 2. Do your work — commit as often as needed while working
 git add <files>
 git commit -m "wip: ..."
 
-# 3. Before merging: squash all commits on the branch into one
+# 3. Squash all branch commits into one
 git rebase -i main   # mark every commit except the first as "squash"
-# Edit the final commit message to follow COMMIT_STYLE.md (with co-author trailers)
+# Write the final commit message following COMMIT_STYLE.md (with co-author trailers)
 
-# 4. Fast-forward main onto the squashed branch (no merge commit)
+# 4. Rebase onto the latest origin/main (handles any merges by other agents while you worked)
+git fetch origin
+git rebase origin/main
+
+# 5. Fast-forward main — guaranteed clean because you just rebased
 git checkout main
+git pull --ff-only
 git merge --ff-only <agent>/<short-description>
 
-# 5. Delete the branch
+# 6. Push and delete the branch
+git push
 git branch -d <agent>/<short-description>
 ```
+
+**Why this works without locking:**
+Steps 3–5 are the key. Squash first so the rebase in step 4 moves a single clean commit — not a pile of wip commits. If another agent merged while you were working, `rebase origin/main` replays your one commit on top of their work. As long as agents respect file ownership, rebases are conflict-free.
+
+**If the rebase in step 4 has a conflict:**
+1. Resolve the conflict in the affected file
+2. `git add <file> && git rebase --continue`
+3. If unresolvable, `git rebase --abort` and coordinate with `[D]`
 
 **Rules:**
 - One branch per PLAN.md step — do not batch multiple steps into one branch
 - Branch name format: `<agent-symbol-lowercase>/<kebab-description>` (e.g. `c/transport-interface`, `o/stdio-impl`)
+- Always `git fetch origin` before rebasing — never rebase onto stale local main
 - The squashed commit message must follow `docs/COMMIT_STYLE.md` and include all co-author trailers
-- Never merge with `--no-ff` or leave merge commits on `main`
-- If the branch cannot fast-forward (main moved ahead), rebase the branch onto the latest main before merging
+- Never merge with `--no-ff` — no merge commits on `main`
+- Never force-push `main`
