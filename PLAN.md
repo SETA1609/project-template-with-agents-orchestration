@@ -88,7 +88,7 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 - [x] `[C|K]` Design module boundaries and transport interface — define the contract all other agents build against
 - [ ] `[C|K]` Review the previous taks if you didnt do it
 - [x] `[O|G]` Initialise Go module: `go mod init github.com/SETA1609/my-mcp-agent-orchestrator`
-- [ ] `[O|G]` Create `cmd/server/main.go` entry-point and `internal/` package skeleton
+- [G] `[O|G]` Create `cmd/server/main.go` entry-point and `internal/` package skeleton
 - [ ] `[P|GF]` Add `go.mod` dependency: `github.com/mark3labs/mcp-go`
 - [ ] `[P|GF]` Add `.env.example` with `MCP_TRANSPORT` (`stdio`|`http`), `HOST`, `PORT`, `LOG_LEVEL`
 - [ ] `[P|O]` Configure `golangci-lint` (`.golangci.yml`) and `gofmt` as pre-commit check
