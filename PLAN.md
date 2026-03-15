@@ -153,7 +153,7 @@ Steps 5.1–5.3 are independent of each other and may be claimed in parallel. St
   1. **Builder**: `golang:1.23-alpine` — `CGO_ENABLED=0 go build -o /server ./cmd/server`
   2. **Runtime**: `gcr.io/distroless/static:nonroot` — copy `/server`; default `CMD` env `MCP_TRANSPORT=http`
 - [ ] `[P|GF]` **5.2** Add `.dockerignore` (exclude `.git`, `tests/`, `docs/`)
-- [ ] `[P|O]` **5.3** Add `docker-compose.yml` for local development convenience
+- [O] `[P|O]` **5.3** Add `docker-compose.yml` for local development convenience
 - [ ] `[D]` **5.4** Validate image size target: **< 20 MB**
 
 > **stdio users** run the binary directly — no Docker required:
