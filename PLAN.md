@@ -4,10 +4,10 @@
 
 Build a **Model Context Protocol (MCP) server** in Go that supports **two transports**, selectable at runtime:
 
-| Mode    | Transport                                          | Use-case                                                                       |
-|---------|----------------------------------------------------|--------------------------------------------------------------------------------|
+| Mode    | Transport                                          | Use-case                                                                      |
+| ------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `stdio` | Standard input/output (JSON-RPC over stdin/stdout) | Local dev, subprocess launched by an AI client (e.g. Claude Desktop, VS Code) |
-| `http`  | HTTP + Server-Sent Events                          | Docker deployment, remote access, multi-client                                 |
+| `http`  | HTTP + Server-Sent Events                          | Docker deployment, remote access, multi-client                                |
 
 The server will be packaged as a Docker image for HTTP mode and run as a plain binary for stdio mode.
 
@@ -25,15 +25,15 @@ The server will be packaged as a Docker image for HTTP mode and run as a plain b
 
 ## Stack
 
-| Layer          | Choice                            | Rationale                                                        |
-|----------------|-----------------------------------|------------------------------------------------------------------|
-| Language       | Go (stable, latest)               | Fast compile, simple concurrency, tiny binaries                  |
-| MCP SDK        | `github.com/mark3labs/mcp-go`    | First-class Go MCP SDK; supports both stdio and SSE transports   |
-| HTTP router    | `net/http` stdlib                 | No extra dependency needed; mcp-go wraps it                      |
-| Config         | `MCP_TRANSPORT` env + `--transport` flag | Parsed via `flag` stdlib or `github.com/spf13/cobra`       |
-| Logging        | `log/slog` (stdlib, Go 1.21+)    | Structured JSON logging with zero extra deps                     |
-| Container      | Docker (multi-stage)              | `golang:1.23-alpine` builder → `gcr.io/distroless/static` runtime|
-| Linting        | `golangci-lint`                   | Runs `gofmt`, `govet`, `staticcheck`, and more                   |
+| Layer       | Choice                                   | Rationale                                                         |
+| ----------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| Language    | Go (stable, latest)                      | Fast compile, simple concurrency, tiny binaries                   |
+| MCP SDK     | `github.com/mark3labs/mcp-go`            | First-class Go MCP SDK; supports both stdio and SSE transports    |
+| HTTP router | `net/http` stdlib                        | No extra dependency needed; mcp-go wraps it                       |
+| Config      | `MCP_TRANSPORT` env + `--transport` flag | Parsed via `flag` stdlib or `github.com/spf13/cobra`              |
+| Logging     | `log/slog` (stdlib, Go 1.21+)            | Structured JSON logging with zero extra deps                      |
+| Container   | Docker (multi-stage)                     | `golang:1.23-alpine` builder → `gcr.io/distroless/static` runtime |
+| Linting     | `golangci-lint`                          | Runs `gofmt`, `govet`, `staticcheck`, and more                    |
 
 ---
 
@@ -73,6 +73,7 @@ my-mcp-agent-orchestrator/
 ## How to read this plan
 
 Each step lists the agents that may claim it, in priority order: `[Primary|Fallback]`.
+
 - If the primary is available, they should claim it.
 - If the primary is busy or unavailable, the fallback may claim it instead.
 - To claim a step, replace `[ ]` with your symbol. To complete it, replace your symbol with `[x]`.
@@ -85,7 +86,8 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 ### Phase 1 — Scaffold & Tooling
 
 - [x] `[C|K]` Design module boundaries and transport interface — define the contract all other agents build against
-- [ ] `[O|G]` Initialise Go module: `go mod init github.com/SETA1609/my-mcp-agent-orchestrator`
+- [ ] `[C|K]` Review the previous taks if you didnt do it
+- [G] `[O|G]` Initialise Go module: `go mod init github.com/SETA1609/my-mcp-agent-orchestrator`
 - [ ] `[O|G]` Create `cmd/server/main.go` entry-point and `internal/` package skeleton
 - [ ] `[P|GF]` Add `go.mod` dependency: `github.com/mark3labs/mcp-go`
 - [ ] `[P|GF]` Add `.env.example` with `MCP_TRANSPORT` (`stdio`|`http`), `HOST`, `PORT`, `LOG_LEVEL`
@@ -96,14 +98,17 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 > `[C|K]` must complete the Phase 1 design step before any Phase 2 work begins.
 
 #### 2a — stdio transport
+
 - [ ] `[O|G]` Use `mcp-go`'s built-in stdio transport: `server.ServeStdio(s)`
 
 #### 2b — HTTP + SSE transport
+
 - [ ] `[K|C]` Confirm `mcp-go` SSE handler setup — `server.NewSSEServer(s, baseURL)` shape
 - [ ] `[O|G]` Implement `internal/` HTTP transport: spin up `mcp-go` SSE server on configured host/port
 - [ ] `[O|G]` Implement graceful shutdown (SIGTERM via `signal.NotifyContext`)
 
 #### 2c — Transport dispatch
+
 - [ ] `[O|P]` Implement dispatch in `cmd/server/main.go`:
   ```go
   switch cfg.Transport {
@@ -142,6 +147,7 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 - [ ] `[D]` Validate image size target: **< 20 MB** (Go static binaries are much smaller than Rust distroless)
 
 > **stdio users** run the binary directly — no Docker required:
+>
 > ```bash
 > MCP_TRANSPORT=stdio ./server
 > # or
@@ -176,11 +182,11 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 
 ### HTTP mode
 
-| Method | Endpoint   | Description                            |
-|--------|------------|----------------------------------------|
-| GET    | `/sse`     | Open SSE stream (MCP server → client)  |
-| POST   | `/message` | Send JSON-RPC message to MCP server    |
-| GET    | `/health`  | Liveness probe (outside MCP)           |
+| Method | Endpoint   | Description                           |
+| ------ | ---------- | ------------------------------------- |
+| GET    | `/sse`     | Open SSE stream (MCP server → client) |
+| POST   | `/message` | Send JSON-RPC message to MCP server   |
+| GET    | `/health`  | Liveness probe (outside MCP)          |
 
 ### stdio mode
 
