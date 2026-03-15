@@ -174,3 +174,35 @@ Reusable workflows live in `.agents/workflows/`. Run them as needed:
 - Every commit must include your agent's co-author trailer (see your detail file in `docs/agents/`)
 - Never force-push to `main`
 - Open a PR for any change that touches shared or framework-level code
+
+### Branch & merge strategy (squash + fast-forward)
+
+Every task is worked in its own short-lived branch. The full lifecycle for a single step:
+
+```
+# 1. Branch off main before touching any files
+git checkout main && git pull
+git checkout -b <agent>/<short-description>   # e.g. claude/transport-interface
+
+# 2. Do your work — commit as often as needed while working
+git add <files>
+git commit -m "wip: ..."
+
+# 3. Before merging: squash all commits on the branch into one
+git rebase -i main   # mark every commit except the first as "squash"
+# Edit the final commit message to follow COMMIT_STYLE.md (with co-author trailers)
+
+# 4. Fast-forward main onto the squashed branch (no merge commit)
+git checkout main
+git merge --ff-only <agent>/<short-description>
+
+# 5. Delete the branch
+git branch -d <agent>/<short-description>
+```
+
+**Rules:**
+- One branch per PLAN.md step — do not batch multiple steps into one branch
+- Branch name format: `<agent-symbol-lowercase>/<kebab-description>` (e.g. `c/transport-interface`, `o/stdio-impl`)
+- The squashed commit message must follow `docs/COMMIT_STYLE.md` and include all co-author trailers
+- Never merge with `--no-ff` or leave merge commits on `main`
+- If the branch cannot fast-forward (main moved ahead), rebase the branch onto the latest main before merging
