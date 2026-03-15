@@ -130,9 +130,9 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 
 ### Phase 4 — Configuration & Observability
 
-- [ ] `[O|G]` Implement `internal/config/config.go`: parse `MCP_TRANSPORT`, `HOST`, `PORT`, `LOG_LEVEL` from ENV; override with `--transport`, `--addr` flags
-- [ ] `[P|GF]` Wire `log/slog` with JSON output at startup, level controlled by `LOG_LEVEL`
-- [ ] `[P|O]` Add `GET /health` liveness endpoint (out-of-band, not part of MCP protocol)
+- [x] `[O|G]` Implement `internal/config/config.go`: parse `MCP_TRANSPORT`, `HOST`, `PORT`, `LOG_LEVEL` from ENV; override with `--transport`, `--addr` flags
+- [x] `[P|GF]` Wire `log/slog` with JSON output at startup, level controlled by `LOG_LEVEL`
+- [x] `[P|O]` Add `GET /health` liveness endpoint (out-of-band, not part of MCP protocol)
 
 ### Phase 5 — Docker Packaging
 

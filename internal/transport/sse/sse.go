@@ -14,6 +14,7 @@ package sse
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/mark3labs/mcp-go/server"
@@ -29,7 +30,19 @@ type SSETransport struct {
 // fatal error occurs. On ctx cancellation a 5-second graceful shutdown is
 // attempted before returning.
 func (t SSETransport) Serve(ctx context.Context, s *server.MCPServer) error {
-	sseServer := server.NewSSEServer(s, server.WithBaseURL(t.BaseURL))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	sseServer := server.NewSSEServer(
+		s,
+		server.WithBaseURL(t.BaseURL),
+		server.WithHTTPServer(&http.Server{Addr: t.Addr, Handler: mux}),
+	)
+	mux.Handle("/", sseServer)
 
 	errCh := make(chan error, 1)
 	go func() {
