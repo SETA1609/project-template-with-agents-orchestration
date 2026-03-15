@@ -134,37 +134,55 @@ Each step lists the agents that may claim it, in priority order: `[Primary|Fallb
 - [x] `[P|GF]` Wire `log/slog` with JSON output at startup, level controlled by `LOG_LEVEL`
 - [x] `[P|O]` Add `GET /health` liveness endpoint (out-of-band, not part of MCP protocol)
 
+> **Phases 5, 6, and 7 are independent and may be claimed and worked concurrently.**
+> Each phase owns a distinct file area — no cross-phase file conflicts.
+>
+> | Phase | File area                              | Can start |
+> |-------|----------------------------------------|-----------|
+> | 5     | `Dockerfile`, `.dockerignore`, `docker-compose.yml` | now |
+> | 6     | `internal/**/*_test.go`, `tests/`     | now       |
+> | 7     | `.github/workflows/`                  | now       |
+
 ### Phase 5 — Docker Packaging
 
-- [ ] `[C|K]` Review Dockerfile strategy — confirm base images, layer order, and secrets handling
-- [ ] `[O|G]` Write multi-stage `Dockerfile`:
-  1. **Builder**: `golang:1.23-alpine` → `CGO_ENABLED=0 go build -o /server ./cmd/server`
-  2. **Runtime**: `gcr.io/distroless/static:nonroot` → copy `/server`
-- [ ] `[P|GF]` Default `CMD` sets `MCP_TRANSPORT=http`
-- [ ] `[P|GF]` Add `.dockerignore` (exclude `.git`, test files, docs)
-- [ ] `[P|O]` Add `docker-compose.yml` for local development convenience
-- [ ] `[D]` Validate image size target: **< 20 MB** (Go static binaries are much smaller than Rust distroless)
+_File area: `Dockerfile`, `.dockerignore`, `docker-compose.yml`_
+
+Steps 5.1–5.3 are independent of each other and may be claimed in parallel. Step 5.4 requires 5.1 to be complete.
+
+- [ ] `[C|K]` **5.1** Write multi-stage `Dockerfile` (strategy decisions inline):
+  1. **Builder**: `golang:1.23-alpine` — `CGO_ENABLED=0 go build -o /server ./cmd/server`
+  2. **Runtime**: `gcr.io/distroless/static:nonroot` — copy `/server`; default `CMD` env `MCP_TRANSPORT=http`
+- [ ] `[P|GF]` **5.2** Add `.dockerignore` (exclude `.git`, `tests/`, `docs/`)
+- [ ] `[P|O]` **5.3** Add `docker-compose.yml` for local development convenience
+- [ ] `[D]` **5.4** Validate image size target: **< 20 MB**
 
 > **stdio users** run the binary directly — no Docker required:
 >
 > ```bash
 > MCP_TRANSPORT=stdio ./server
-> # or
-> ./server --transport stdio
+> # or: ./server --transport stdio
 > ```
 
-### Phase 6 — Testing & CI
+### Phase 6 — Tests
 
-- [ ] `[K|C]` Design integration test harness — how to spin up the server in-process for both transports
-- [ ] `[O|G]` Write unit tests for each tool and resource handler (`_test.go` alongside source)
-- [ ] `[O|GR]` Write integration tests: `tests/stdio_test.go` and `tests/http_test.go`
-- [ ] `[O|G]` Write GitHub Actions workflow:
+_File area: `internal/**/*_test.go`, `tests/`_
+
+Steps 6.1 and 6.2 are independent and may be claimed in parallel.
+
+- [ ] `[O|G]` **6.1** Write unit tests for each tool and resource handler (`_test.go` alongside source)
+- [ ] `[K|C]` **6.2** Write integration tests — design harness inline (`tests/stdio_test.go`, `tests/http_test.go`): spin up binary over pipes (stdio) and `httptest.Server` (HTTP)
+
+### Phase 7 — CI Pipeline
+
+_File area: `.github/workflows/`_
+
+- [ ] `[O|G]` **7.1** Write GitHub Actions workflow:
   - `gofmt -l .` (fail on unformatted files)
   - `go vet ./...`
   - `golangci-lint run`
   - `go test ./...`
   - `docker build` smoke-test
-- [ ] `[D]` Review and approve CI workflow before merging to `main`
+- [ ] `[D]` **7.2** Review and approve CI workflow before merging to `main`
 
 ---
 
